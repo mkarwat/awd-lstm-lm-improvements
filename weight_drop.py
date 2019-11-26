@@ -3,12 +3,13 @@ from torch.nn import Parameter
 from functools import wraps
 
 class WeightDrop(torch.nn.Module):
-    def __init__(self, module, weights, dropout=0, variational=False):
+    def __init__(self, module, weights, dropout=0, variational=False, device=torch.device('cuda:0')):
         super(WeightDrop, self).__init__()
         self.module = module
         self.weights = weights
         self.dropout = dropout
         self.variational = variational
+        self.device = device
         self._setup()
 
     def widget_demagnetizer_y2k_edition(*args, **kwargs):
@@ -35,7 +36,7 @@ class WeightDrop(torch.nn.Module):
             w = None
             if self.variational:
                 mask = torch.autograd.Variable(torch.ones(raw_w.size(0), 1))
-                if raw_w.is_cuda: mask = mask.cuda()
+                if raw_w.is_cuda: mask = mask.to(self.device)
                 mask = torch.nn.functional.dropout(mask, p=self.dropout, training=True)
                 w = mask.expand_as(raw_w) * raw_w
             else:
@@ -45,6 +46,7 @@ class WeightDrop(torch.nn.Module):
     def forward(self, *args):
         self._setweights()
         return self.module.forward(*args)
+
 
 if __name__ == '__main__':
     import torch

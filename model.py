@@ -8,7 +8,7 @@ from weight_drop import WeightDrop
 class RNNModel(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
 
-    def __init__(self, rnn_type, ntoken, ninp, nhid, nlayers, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0, tie_weights=False):
+    def __init__(self, rnn_type, ntoken, ninp, nhid, nlayers, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0, tie_weights=False, wdropdevice=torch.device('cuda:0')):
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
@@ -19,16 +19,16 @@ class RNNModel(nn.Module):
         if rnn_type == 'LSTM':
             self.rnns = [torch.nn.LSTM(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else (ninp if tie_weights else nhid), 1, dropout=0) for l in range(nlayers)]
             if wdrop:
-                self.rnns = [WeightDrop(rnn, ['weight_hh_l0'], dropout=wdrop) for rnn in self.rnns]
+                self.rnns = [WeightDrop(rnn, ['weight_hh_l0'], dropout=wdrop, device=wdropdevice) for rnn in self.rnns]
         if rnn_type == 'GRU':
             self.rnns = [torch.nn.GRU(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else ninp, 1, dropout=0) for l in range(nlayers)]
             if wdrop:
-                self.rnns = [WeightDrop(rnn, ['weight_hh_l0'], dropout=wdrop) for rnn in self.rnns]
+                self.rnns = [WeightDrop(rnn, ['weight_hh_l0'], dropout=wdrop, device=wdropdevice) for rnn in self.rnns]
         elif rnn_type == 'QRNN':
             from torchqrnn import QRNNLayer
             self.rnns = [QRNNLayer(input_size=ninp if l == 0 else nhid, hidden_size=nhid if l != nlayers - 1 else (ninp if tie_weights else nhid), save_prev_x=True, zoneout=0, window=2 if l == 0 else 1, output_gate=True) for l in range(nlayers)]
             for rnn in self.rnns:
-                rnn.linear = WeightDrop(rnn.linear, ['weight'], dropout=wdrop)
+                rnn.linear = WeightDrop(rnn.linear, ['weight'], dropout=wdrop, device=wdropdevice)
         print(self.rnns)
         self.rnns = torch.nn.ModuleList(self.rnns)
         self.decoder = nn.Linear(nhid, ntoken)

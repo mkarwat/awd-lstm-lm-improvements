@@ -10,7 +10,7 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
-def batchify(data, bsz, args):
+def batchify(data, bsz, args, device=torch.device('cuda:0')):
     # Work out how cleanly we can divide the dataset into bsz parts.
     nbatch = data.size(0) // bsz
     # Trim off any extra elements that wouldn't cleanly fit (remainders).
@@ -18,7 +18,7 @@ def batchify(data, bsz, args):
     # Evenly divide the data across the bsz batches.
     data = data.view(bsz, -1).t().contiguous()
     if args.cuda:
-        data = data.cuda()
+        data = data.to(device)
     return data
 
 
